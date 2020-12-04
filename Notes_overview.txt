@@ -1,0 +1,92 @@
+
+Stakeholders - Regions
+
+Sales - director/sn manager etc. 
+Davon O'Leary
+Rona Hicks 
+Camile (Cammie) Agatep
+
+objective: 
+identify big target customers and assign account managers 
+- account volume is too big
+- customer upgraded over time
+- initial sales by EAE (6 or 12 mo) hand off to account manager (some politics)
+
+billing address - main key
+if it is outside the region, use a majority rule 
+
+
+under $500 spending, no account manager
+
+
+SQL couldn't handle OR statements -- no index 
+
+NDW migration ?  
+
+SQL Server update SET (many)
+Teradata - watch out for multiple value updates 
+
+
+family_id 
+- originally generated in SAS (table -> table with family_id and merge)
+- need to keep the old ids
+- 
+
+
+SQL code inherited from Leon 
+python code from David
+
+2019 Leon started it
+late 2019  David stared working on this, then shelved
+July 2020  David worked on it
+
+
+single view, csg data -- relatively easy
+
+athena data -- tricky 
+- business id, hq_id  -- supplemental business identification 
+- other info about businesses 
+
+salesforce -- tricky
+- data input duplicates exist 
+	- making rules 
+		most recent closed opp
+		might miss national accounts
+		potentially franchise   
+
+
+
+externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
+- only active accounts
+
+[ExternalUser].[NDW].[BC_SUBS_JV]
+- main cgs 
+
+take care of intersection between SV and CSG 
+- get SV-only customers  
+- get SV-CSG customers AAN
+- CSG-only customers -- rare, ignore them
+
+salesforce data
+- account number may be in any of various columns 
+- coudn't find matching salesforce accoutns for about 6% 
+
+
+SV 
+- enterprise level products 
+- generally higher MRC - monthly recurring charge  
+
+CSG
+- coax products 
+- often more simple products 
+
+
+
+
+
+
+
+
+
+
+

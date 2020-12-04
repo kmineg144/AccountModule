@@ -1,0 +1,179 @@
+
+# acct_module.ini
+
+Q1. Why the intermediate outputs from 'oppotunity' and 'account' were exported and then imported?  Was there any specific use for these intermediate outputs? 
+
+- To check intermmediate results. 
+
+
+Q2. Can we have the copies of the outputs (both pkl and excel files) from the previous time?
+
+
+ # sfdc_main.py
+
+ Q1. Would you explain the three different csv-file datasets of 'opportunity', 'account', and 'summary'?  Which datasets from SQL Server are they drawing data from?  Why are they sequentially merged via left-join? 
+
+
+# sfdc_opportunity.py
+
+Q1. line 42: What's the difference between 'Closed Won' v 'Closed - Won'?  Why is  'Closed - Won' not used in line 56? 
+
+-  Both 'Closed Won' and 'Closed - Won' should be used. 
+
+
+Q2. line 54: What's the meaning of variable name 'OPPORTUNITY_EXCL_IND'?
+
+- This indicator tells rows in the opportunity data to exclude. 'Lock -...' indicates that the opportunity is locked and therefore should be excluded for further sales consideration. 
+
+
+Q3. line 62: What's the meaning of variable name 'New_Closed_Won_Owner'?
+
+- When the data is available, use retrieved owner of closed won opportunity. 
+
+Q4. line 95: What's the business logic of this subsetting?  
+
+- we are interested in knowing opportunities that have 'New_Closed_Won_Owner'or that has 'OPPORTUNITY_EXCL_IND' locked. 
+
+Q5. line 99: What's the business logic of selecting one-account per 'AccountId' based on the ordering of 'OPPORTUNITY_EXCL_IND'? Is alphabetical ordering used here; if so, why?
+
+- just some ordering to have one row per AccountId
+
+Q6. line 108: How are these subsetting variables selected? 
+
+- keepnig what seems to be needed
+
+
+# pandas_utilities.py
+
+Q1. line 16: the comment says something about 90 days, but where does this apply? 
+
+- it's changed to 6 months
+
+Q2. When do we need condition row['OrderStatus__c'] != 'Cancelled' ?  It is used in lines 17, 27, and 30 but not in lines 20, 23, 33, 36.   
+
+- only 'accepted' or 'won' opportunitied may be cancelled. 
+
+Q3. line 26: what's the comment about 6 months? What happens after 6 months? 
+
+- 
+
+Q4. What's the business logic of 'Locked - NEAM' and 'Locked - SEAE or National'? 
+
+- Those opportunities are locked and should be be considered for further sales. 
+
+
+Q5. line 56: How are the lists of variables that correspond to data plans and voice plans identified?  Should they change in the future, where can we learn about the updated information? 
+
+- It rarely changes. If it does, find out and update the columns. 
+
+
+# sfdc_account.py
+
+Q1. line 65: How are these subsetting variables selected? 
+
+- keeping what seems to be needed. 
+
+Q2. line 73: What is your intention when you talk about 'establishing winner'? What is a 'winner?' -- is it a row of data to keep for given AccountId etc.?  
+
+- Assining the sales rep who seems to be responsible for a given opportunity that is won.  
+
+Q3. line 79: How are these variables to drop selected?
+
+- keeping what seems to be needed. 
+
+!new Q4. should the data output of sfdc_account.py be uniquely identifiable by 'family_id'?
+
+- yes
+
+# account_winner.py
+
+Q1. line 43: What does variable name 'Family_Most_Recent_Opportunity' mean? What does it mean to have null for this variable? 
+
+- for the opportunities that do not have AM or CAGE values, find the most recent date.
+
+NEW Q. line 43: why is this using  .groupby('family_id')['CreatedDate'].transform('max')?  and then later sorting with this variable? Doesn't it make more sense to just copy 'CreatedDate' when AM and CAGE are both null ? 
+
+
+Q2. line 43: What do variables 'AM_Module__c' and 'CAGE_Number__c' mean? When both are not null, should they be included in 'module_accounts' results?  
+
+- Those are locked opportunities/accounts. 
+
+Q3. line 50: What does business logic 'Opportunity_Owner_Role'='SP'  mean? 
+
+- Indirect accounts. Those are locked. 
+
+Q4. What is the distinction between 'module_accounts' and 'other_accounts'?  It seems that they are separately subsetted and then concatenated back together. Why is that necessary - or what does it accomplish?  
+
+- Not sure if they needed to be separated and then concatenated. 
+
+Q5. lines 68 and 86: What is the business logic behind this sorting and selecting the instances per 'family_id'? 
+
+- Keeping one row per family_id while prioritizing the accounts that are locked and then those that have the most recent opportunity date. 
+
+
+!new Q6. line 68: when sorting by a set of variables and taking the first instance of family_id    
+    using ['AM_Module__c','OPPORTUNITY_EXCL_IND','SP_IND','Family_Most_Recent_Opportunity'],
+    the sorting order is not unique -- to establish a unique order we need more variables in the sort. Does it matter? If so, which variables are good candidates? 
+
+
+
+!new Q7.  line 43: why are we using  .groupby('family_id')['CreatedDate'].transform('max')?  and then later sorting with this variable? Doesn't it make more sense to just copy 'CreatedDate' when AM and CAGE are both null ?  This may be related to my earlier question regarding not unique sorting order in the account and other modules data. 
+
+- Right, we don't want to use .groupby('family_id')['CreatedDate'].transform('max')  here. Just sort by 'CreatedDate'. 
+
+
+
+# sfdc_summary.py
+
+Q1. line 51: How are these subsetting variables selected?
+
+- Keeping what seems to be needed. 
+
+Q2. line 75: What's the business logic for dropping rows with 'FAMILY_SPEND_EST_FOR_EVAL > 500'? 
+
+- Those are relatively small accounts that do not need much attention for considering further sales efforts . 
+
+Q3. line 122: How are these indicator variables selected? What's the business logic for this?  
+
+- Various indicators of business types etc. for which further sales effort are not needed.  
+
+Q4. line 210: How are these three data subsets determined?  What's the business logic for this?  
+
+- Sheet 1: the accounts that can be pursued for further sales
+- Sheet 2: the accounts that have some indication for not suitable for further sales 
+- Sheet 3: the accounts that we couldn't match salesforce data
+
+Q5. line 230: How are these subsetting variables selected?
+
+- Keeping what seems to be needed.
+
+!new Q6. line 105: condition (df['SP_IND'].str.contains('Y')) | (df['SP_IND'].isnull()) 
+    produces False when 'SP_IND' is nan. Is this intended or mistake? 
+
+- That's a mistake. Good catch. 
+
+!new Q7. line 100: similarly, condition 
+    (df['OPPORTUNITY_EXCL_IND'].str.contains('Locked -')) | (df['OPPORTUNITY_EXCL_IND'].isnull()) produces False when 'OPPORTUNITY_EXCL_IND' is nan. 
+
+- That's a mistake. Good catch. 
+
+
+# acct_module_score.py
+
+Q1. Where did the score_feature.csv data come from? 
+
+- Basically came from sales people. 
+
+!new Q2. When I use the data in 'sample_summary.csv' and run this code, 
+    I get 'FAMILY_SPEND_EST_FOR_EVAL_SCORE' to be all zero. This appears odd when 
+    comparing the start/stop value of score_feature table and the data values of 
+    'FAMILY_SPEND_EST_FOR_EVAL' (mean 688, std 6771, 75th percentile 445, max 457660). 
+    I get different numbers for other scoring items/columns as well. 
+
+- It's working fine.
+
+!new Q3. How did you handle nan value and the value that exceeds the largest 'stop' value ? 
+    I'm currently assigning nan to the minimum score (i.e., 1), and
+    the exceedingly large value to the maximum score (i.e., 5). 
+
+- That seems sensible. 

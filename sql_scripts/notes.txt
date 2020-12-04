@@ -1,0 +1,46 @@
+
+Databases in WESTBIS: 
+- EXTERNALUSER.SingleView 
+- EXTERNALUSER.MIP (Athena data)
+- EXTERNALUSER.NDW
+- EXTERNALUSER.SFDC
+- EXTERNALUSER.VANTAGE
+
+Need access to RPTCB.RPT to write tables. 
+
+
+biller_athena.sql
+- This query generates all the active businesses in SV and CSG. Additionally, it tries to find SV accounts also with CSG accounts 
+- It does some preliminary filtering (ie national accounts, Gov-ed accounts) based on SV and CSG data
+- There is some aggregation done  (summing up their entire bill) to combine multiple rows into one for a given account.
+- It also tries to link Athena data (BUSINESS_ID and HQ_ID) to the account using the product_instance_id
+
+
+gather_all_sfdc_info.sql
+- Intuition behind this was to gather all the SFDC data all at once and then join it with the Biller/Athena output from above
+- After running this, you will have an SFDC account number with 1 or more Biller ID to tie the two data sets to
+
+
+sfdc_accounts_to_biller.sql
+- This goes through the two scripts above and joins biller data with the SF data
+- Since there are multiple columns to join on, we repeat the steps multiple times
+- Note: I tried to shorten the script by using OR statement to combine JOINS but the script would constantly time out before finishing
+- generates two files you will need for the python script
+- account level SFDC data
+- opportunity level SFDC data
+- FYI: opportunity  account level. You start from the opportunity level data which rolls up to account level information. For example: 2 opportunities : ABC and DEF both roll up to account: XYZ
+
+
+
+
+sfdc_to_biller_athena.sql
+- This script is meant to connect Athena data with SF. 
+- It is mainly used to give us the summary output next
+
+summary.sql
+- summary takes the output from sfdc_to_biller_athena.sql and summarizes the data by performing row level aggregations
+- spits out the final output for python to perform ETL on.
+- Get output by running: 
+- select * from BI_MIP.dbo.biller_sfdc_accounts_summary_dyao  order by family_id
+
+

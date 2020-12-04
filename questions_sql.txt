@@ -1,0 +1,37 @@
+
+
+Q1. What are these datasets? What information do they contain? What are they used for?  
+- externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
+- [ExternalUser].[SingleView].[Product_Local_Recon]
+
+- ExternalUser.[Vantage].[OCI_CUR_ITEM]
+- [ExternalUser].[Vantage].[ITV_ITEM_VALUE]
+
+- [ExternalUser].[NDW].[BC_SUBS_JV]
+
+- BI_MIP.MIP3.ATHENA_BUSINESS_SUMMARY
+- BI_MIP.MIP3.ATHENA_BUSINESS_XREF
+- BI_MIP.[MIP3].[SV_SOURCE_ADDR]
+- EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE
+- EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE_ACCOUNT_DIM
+
+- externaluser.sfdc.[user]
+- externaluser.sfdc.Account
+- EXTERNALUSER.SFDC.RECORDTYPE 
+- EXTERNALUSER.SFDC.ORDER__c 
+- ExternalUser.SFDC.LocationLookup__c
+
+
+Q2. Where did the following datasets come from? 
+- BI_MIP.dbo.SCA_MODULE_NEW_ACCOUNTS_DYAO
+- RPTCB.RPT.FAMILY_ID_YAO
+- BI_MIP.dbo.SCA_MODULE_STAGE1X_DYAO_EXPERIMENT 
+
+
+Q3. What is the main output of biller_athena.sql ? 
+
+
+Q4. What is RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO used for? 
+
+
+

@@ -1,0 +1,318 @@
+
+# -------- summary.sql --------
+to-do
+- output a summarized biller_sfdc_accounts_dyao_11_2020 as summary dataset
+
+data requirements
+- rptcb.rpt.biller_sfdc_accounts_dyao_11_2020 
+
+data output
+- rptcb.rpt.biller_sfdc_accounts_summary_dyao_11_2020
+
+rptcb.rpt.biller_sfdc_accounts_summary_dyao_11_2020
+- aggragated rptcb.rpt.biller_sfdc_accounts_dyao_11_2020  at the FAMILY_ID level 
+- modified 3 times via UPDATE: FAMILY_SPEND_EST_FOR_EVAL, ESTIMATED_FAMILY_MODULE, ESTIMATED_FAMILY_SPEND_RANGE
+- final results for the summary data
+
+
+#  -------- sfdc_biller_athena.sql --------
+to-do
+- combine billing data and sfdc data 
+- combine athena data info to sfdc + biller data
+
+data requirements
+- rptcb.rpt.sfdc_to_biller_dyao_11_2020
+- rptcb.rpt.SCA_MODULE_STAGE1X_DYAO_11_2020
+- BI_MIP.MIP3.ATHENA_BUSINESS_XREF
+
+data output
+- rptcb.rpt.biller_sfdc_accounts_dyao_11_2020 
+
+temp1 data
+- base is rptcb.rpt.SCA_MODULE_STAGE1X_DYAO_11_2020
+- updated using BI_MIP.dbo.sfdc_to_biller_dyao_11_2020
+	- SET parent_id, sfdc_account, owner_id, am_module, cage_number, 
+		sfdc_nat_ind, sfdc_nat_sp_ind
+	- WHERE AM_Module__c is {NOT NULL, NULL} and: 
+		- CSG_ACCOUNT IS NULL and SV_ROOT_ACCOUNT = {SV1, SV2, SV3}
+		- CSG_ACCOUNT IS NOT NULL and SV_ACCOUNT = {SV1, SV2, SV3}
+		- CSG_ACCOUNT is NULL and CSG_ACCOUNT = {CSG1, CSG3}
+		- CSG_ACCOUNT is NOT NULL and SV_ROOT_ACCOUNT = {SV1, SV2, SV3}
+		- SV_ROOT_ACCOUNT IS NULL and CSG_ACCOUNT = {CSG1, CSG3}
+- output to BI_MIP.dbo.biller_sfdc_accounts_dyao_11_2020
+
+
+missing_sfdc_account data 
+- subset of BI_MIP.dbo.biller_sfdc_accounts_dyao_11_2020
+	where SFDC_ACCOUNT is NULL
+- output to temp2 
+	- left join BI_MIP.MIP3.ATHENA_BUSINESS_XREF 
+		via athena_business_id = CSG_BUSN_ID, SVAN_BUSN_ID, or SVM_BUSN_ID
+	- updated using rptcb.rpt.sfdc_to_biller_dyao_11_2020
+		- SET parent_id, sfdc_account, owner_id, am_module, cage_number, 
+			sfdc_nat_ind, sfdc_nat_sp_ind
+		- WHERE 
+			- SFDC_AcctID = {ACCOUNT__C,  Site_Account__c}
+	- used to update BI_MIP.dbo.biller_sfdc_accounts_dyao_11_2020 
+		- SET parent_id, sfdc_account, owner_id, am_module, cage_number, 
+			sfdc_nat_ind, sfdc_nat_sp_ind
+		- WHERE matching family_id and 
+			 matching concat(distinct_loc_id, sv_account, sv_root_account, csg_account)
+
+
+
+#  -------- sfdc_accounts_to_biller.sql --------
+to-do
+- combine billing data and sfdc data 
+- output account and opportunity datasets
+
+data requirements
+- rptcb.rpt.SCA_MODULE_STAGE1X_DYAO_11_2020
+- rptcb.rpt.sfdc_to_biller_dyao_11_2020
+- externaluser.sfdc.[user]
+- EXTERNALUSER.[SFDC].Opportunity  
+
+
+data output
+- rptcb.rpt.accounts_11_2020
+- opportunity_temp
+
+
+yao1
+- subset of rptcb.rpt.SCA_MODULE_STAGE1X_DYAO_11_2020
+	where SV_EXCL_IND is NULL and CSG_EXCL_IND = ''
+
+temp
+- joined data between rptcb.rpt.sfdc_to_biller_dyao_11_2020 and yao1 
+	- WHERE CGC_ACCOUNT
+	- WHERE AM_Module__c is {NOT NULL, NULL} and: 
+		- SV_ROOT_ACCOUNT IS NOT NULL and CSG_ACCOUNT = {CSG1, CSG3}
+		- SV_ROOT_ACCOUNT = {SV1, SV2, SV3} and CSG_ACCOUNT IS NOT NULL
+		- SV_ROOT_ACCOUNT IS NULL and CSG_ACCOUNT = {CSG1, CSG3}
+		- SV_ROOT_ACCOUNT = {SV1, SV2, SV3} and CSG_ACCOUNT IS NULL
+		- SV_ACCOUNT = {SV1, SV2, SV3} and CSG_ACCOUNT IS NOT NULL
+- drop duplicates 
+- join using externaluser.sfdc.[user]
+- output to rptcb.rpt.accounts_11_2020    
+
+
+opportunity_temp
+- join between 
+	 - EXTERNALUSER.[SFDC].Opportunity  
+	 - externaluser.sfdc.[user]
+	 - rptcb.rpt.accounts_11_2020
+
+
+#  -------- gather_all_sfdc_info.sql --------
+to-do
+- extract sfdc data 
+
+data requirements 
+- externaluser.sfdc.Account
+- EXTERNALUSER.SFDC.RECORDTYPE 
+- EXTERNALUSER.SFDC.ORDER__c 
+- ExternalUser.SFDC.LocationLookup__c
+
+data output
+ - rptcb.rpt.sfdc_to_biller_dyao_11_2020
+
+ModuleAccts
+- subset of externaluser.sfdc.Account
+	with modified Billing_Account__c, SavilleBillingAccountNumber__c
+	where AM_Module__c is not null
+- inserted rows of externaluser.sfdc.Account using self-join via id = ParentID
+- inserted rows of externaluser.sfdc.Account where AM_Module__c is null
+
+rptcb.rpt.ModuleAccts_11_2020
+- join between 
+    - ModuleAccts 
+    -EXTERNALUSER.SFDC.RECORDTYPE on RecordTypeId and SobjectType
+
+
+rptcb.rpt.gotem_dyao_11_2020
+- join between 
+	- EXTERNALUSER.SFDC.ORDER__c
+	- rptcb.rpt.ModuleAccts_11_2020
+
+
+rptcb.rpt.needem_dyao_11_2020  
+- subset of rptcb.rpt.ModuleAccts_11_2020
+	where id not in ACCOUNT__C from rptcb.rpt.gotem_dyao_11_2020
+
+
+gotEm2 data
+- join between 
+	- ExternalUser.SFDC.LocationLookup__c
+	- rptcb.rpt.needem_dyao_11_2020  
+	where  Stage__c IN ('Closed Won','Closed-Won') and 
+		coalesce(CSGBilling_Account__c, Saville_Account__c) is not null
+
+
+rptcb.rpt.sfdc_to_biller_dyao_11_2020
+- union between
+	- butWaitTheresMore
+		- rptcb.rpt.gotem_dyao_11_2020
+	- StillNeedEm
+		- rptcb.rpt.ModuleAccts_11_2020 
+			where id not in ACCOUNT__C from butWaitTheresMore
+
+
+#  -------- biller_athena.sql --------
+to-do
+- extract relevant billing data from single view and csg 
+- 
+- combined all into billing data with family_id 
+
+data requirements
+- externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
+- [ExternalUser].[SingleView].[Product_Local_Recon]
+- externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
+- [ExternalUser].[NDW].[BC_SUBS_JV]
+- BI_MIP.[MIP3].[SV_SOURCE_ADDR]
+- EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE
+- EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE_ACCOUNT_DIM
+- BI_MIP.MIP3.ATHENA_BUSINESS_XREF
+- ExternalUser.[Vantage].[OCI_CUR_ITEM]
+- [ExternalUser].[Vantage].[ITV_ITEM_VALUE]
+- RPTCB.RPT.FAMILY_ID_YAO       <- from Ram 
+
+data output
+- RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO_11_2020
+
+
+SV_WD_RAN_AN_LIST 
+- subset of externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
+	where CUSTOMER_DIVISION ='WEST' etc. and amount <> 0 and 
+		CHARGE_TYPE = 'RC'and PRODUCT_INSTANCE_STATUS = 'Active'
+
+@VLOOKUP_TABLE
+- ROOT_CUSTOMER_NAME LOOKUP_WORD, 'CARRIER' from 
+	[ExternalUser].[SingleView].[Product_Local_Recon]
+	where (GENERAL_4_Value LIKE '%CARRIER%' OR Sales_Channel = '28 - Carrier') AND	
+		 ROOT_CUSTOMER_NAME NOT IN ('CalNet')  AND 	
+		 GENERAL_4_Label = 'Line of Business' AND 
+		 service_status_desc <> 'Cancelled' AND 
+		 Child_Account_CustomerNodeStatus = 'Active'
+
+
+RptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_11_2020 
+- join beteen 
+	- externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
+	- SV_WD_RAN_AN_LIST
+	- @VLOOKUP_TABLE
+- aggragated at the unique level of 
+	SV.ROOT_ACCOUNT_NUMBER,ROOT_CUSTOMER_NAME,INVOICE_ACCOUNT_NAME,
+	HIERARCHY_LEVEL,ACCT_NUM,SERVICE_A_GEOCODE,AAN,NODE_NAME, PRODUCT_INSTANCE_ID
+- updated via
+	set SV_EXCL_IND  = CASE WHEN 
+	COALESCE(NAT_IND,GOV_IND,EDU_IND,AGGR_IND,MES_IND,CAR_IND,CBH_IND,TWKR_IND) IS NOT NULL THEN 'Y' ELSE NULL END
+
+
+RptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_dyao_11_2020
+- subset of RptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_11_2020 
+	where rnk = 1
+- some columns dropped
+- some columns added
+- updated on SVAN_BUSN_ID using SVAN_BUSN_HQ_ID
+- updated on SVAN_HQ_ID using SVAN_BUSN_HQ_ID
+- updated on SVM_BUSN_ID using SVM_BUSN_HQ_ID
+- updated on SVM_HQ_ID using SVM_BUSN_HQ_ID
+
+UPDATESVMBUSNID	
+- selected from rptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_dyao
+- left joins with
+	- BI_MIP.[MIP3].[SV_SOURCE_ADDR]
+	- EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE
+- updated on SVM_BUSN_ID, SVM_HQ_ID
+- updated on SVAN_BUSN_ID, SVAN_HQ_ID
+
+SVAN_BUSN_HQ_ID
+- selected from EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE_ACCOUNT_DIM
+- left join with BI_MIP.MIP3.ATHENA_BUSINESS_SUMMARY
+- right join with RptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_dyao 
+
+SVM_BUSN_HQ_ID
+- selected from EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE_ACCOUNT_DIM
+- left join with BI_MIP.MIP3.ATHENA_BUSINESS_SUMMARY
+- right join with  RptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_dyao 
+
+
+RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO_11_2020
+- selected from RptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_dyao_11_2020
+- outer join with [ExternalUser].[NDW].[BC_SUBS_JV]
+- updated on CSG_BUSN_ID, CGS_HQ_ID using CSG_BUSN_HQ_ID
+- inserted using [ExternalUser].[NDW].[BC_SUBS_JV]
+- updated on CSG_BUSN_ID, CGS_HQ_ID using CSG_ONLY_BUSN_HQ_ID
+- updated on CSG_BUSN_ID using BI_MIP.MIP3.ATHENA_BUSINESS_XREF
+- updated on CSG_HQ_ID using EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE
+- updated on [CSG_OTHER_MRC_BCS],  [CSG_TOTAL_MRC_BCS_WD], FAMILY_ID, ... 
+- updated using CSGEXCL
+- alter table var type change
+- updated using temp_ATHENA_INFO_LOAD
+- updated on FAMILY_ID using  RPTCB.RPT.FAMILY_ID_YAO
+- updated using FIELD_GROUP_ALTERED_BY_FAMILY
+- updated on FAMILY_ID_REGION using MAXHQIDFORFAMILY 
+- updated on FAMILY_ID_REGION using CSG_FAMILY_ID_REGIONFIX
+- updated on FAMILY_ID_REGION using CKFAMHQREGION 
+
+CSG_BUSN_HQ_ID
+- selected from EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE_ACCOUNT_DIM
+- left join with BI_MIP.MIP3.ATHENA_BUSINESS_SUMMARY
+- right join with RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO
+
+CSG_ONLY_BUSN_HQ_ID
+- selected from EXTERNALUSER.MIP.MIP3_BUSINESS_PROFILE_ACCOUNT_DIM
+- left join with BI_MIP.MIP3.ATHENA_BUSINESS_SUMMARY
+- right join with RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO
+
+TMP_MRC_update
+- selected from RptCB.Rpt.SCA_MODULE_STAGE1X  
+- join with ExternalUser.[Vantage].[OCI_CUR_ITEM]
+- left join with [ExternalUser].[Vantage].[ITV_ITEM_VALUE]
+- aggregated at SubAccount level
+
+ RptCB.Rpt.SCA_MODULE_STAGE1X 
+ - updated on CSG_CONNPRO_MRC_WD, CSG_WIFIPRO_MRC_WD, CSG_SECEDGE_MRC_WD using TMP_MRC_update 
+
+CSGEXCL
+- selected from  RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO
+- join with wisdm.dim.dwelling 
+
+FULL_BUSN_ID_LIST
+- unions of selected subsets of  RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO
+
+temp_ATHENA_INFO_LOAD
+- selected from FULL_BUSN_ID_LIST
+- left joins using
+	- BI_MIP.MIP3.BUSINESS_PROFILE, 
+	- BI_MIP.MIP3.ATHENA_BUSINESS_SUMMARY
+	- BI_MIP.MIP3.ADDRESS_PROFILE 
+
+FULL_FAMILY_HQ_ID_LIST2
+- unions of selected subsets of RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO
+
+MAXHQIDFORFAMILY
+- selected from FULL_FAMILY_HQ_ID_LIST2 
+- join with BI_MIP.MIP3.ATHENA_BUSINESS_SUMMARY
+
+CSG_FAMILY_ID_REGIONFIX
+- selected from ptCB.Rpt.SCA_MODULE_STAGE1X_DYAO
+- aggragated at FAMILY_ID, CSG_REGION_BCS
+
+CKFAMHQREGION 
+- selected from RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO
+- aggregated at FAMILY_ID, FILE_GROUP, CSG_HQ_ID, CSG_REGION_BCS
+
+
+same_csg_name
+- selected from  BI_MIP.dbo.SCA_MODULE_STAGE1X_DYAO_EXPERIMENT 
+
+winning_csg_family_id
+- selected from same_csg_name
+
+same_sv_name
+- selected from  BI_MIP.dbo.SCA_MODULE_STAGE1X_DYAO_EXPERIMENT 
+
+winning_sv_family_id
+- selected from same_sv_name
+

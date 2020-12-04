@@ -1,0 +1,8 @@
+# at directory refactor/  use the following command line: 
+
+python -m unittest discover -s tests/ -p "test_*.py"
+
+or 
+
+py -m unittest discover -s tests/ -p "test_*.py"
+
