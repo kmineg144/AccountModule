@@ -1,10 +1,10 @@
-
+import os
 
 # --- Data files --- 
 opportunity_csv = ''
 account_csv = ''
 summary_csv = ''
-score_file = 'score_feature.csv'
+score_file = os.path.join('refactor','score_feature.csv')
 
 output_filepath = ''
 
@@ -102,15 +102,18 @@ score_items = ['FAMILY_SPEND_EST_FOR_EVAL'
                 ,'TOTAL_LOC_CNT']
 
 keeping_vars_sco = [
-               'ACCT_MODULE_VERSION',
+              # 'ACCT_MODULE_VERSION',
                 'ESTIMATED_FAMILY_MODULE',
                 'ESTIMATED_FAMILY_SPEND_RANGE',
                 'FAMILY_ID',
                 'FAMILY_ID_REGION',
-                'BILLING_ZIP_MAX',
+                #'BILLING_ZIP_MAX',
+                'SV_ACCT_ZIP',
                 'ATHENA_LEGAL_NAME1',
-                'SV_BUSN_NAME_MAX',
-                'CSG_BUSN_NAME_MAX',
+                #'SV_BUSN_NAME_MAX',
+                'SV_ROOT_ACCOUNT_NAME',
+               # 'CSG_BUSN_NAME_MAX',
+                'CSG_BUSN_NAME',
                 'FAMILY_SPEND_EST_FOR_EVAL',
                 'ATHENA_FAMILY_TELCO_SPEND',
                 'CSG_AND_SV_TOTAL_MRC',

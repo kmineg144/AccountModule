@@ -26,8 +26,16 @@ if not check_unique_weights_within_features():
 
 class Score:
     def __init__(self, csv_file):
-        vars_to_drop = ['PARENT_ID_MAX', 'SFDC_ACCOUNT_MAX', 'AM_MODULE_MAX', 'OWNER_ID_MAX', 'CAGE_NUMBER_MAX']
-        self.df = pd.read_csv(csv_file).drop(vars_to_drop, 1)
+        self.df = pd.read_csv(csv_file)
+        vars_to_drop1 = ['PARENT_ID_MAX', 'SFDC_ACCOUNT_MAX', 'AM_MODULE_MAX', 'OWNER_ID_MAX', 'CAGE_NUMBER_MAX']
+        vars_to_drop2 = ['PARENT_ID', 'SFDC_ACCOUNT', 'AM_MODULE', 'OWNER_ID', 'CAGE_NUMBER']
+        try:
+            self.df = self.df.drop(vars_to_drop1, 1)
+        except:
+            self.df = self.df.drop(vars_to_drop2, 1)
+
+    def filter(self):
+        self.df = self.df[self.df.FAMILY_SPEND_EST_FOR_EVAL > 500]
 
     def merge_data(self, df_acc):
         self.df = (self.df.set_index('FAMILY_ID')
@@ -36,8 +44,8 @@ class Score:
                     )
 
     def add_columns(self):
-        self.df['SFDC_OPPORTUNITY_IND'] = self.df.apply(opp_locked_or_null,1)
-        self.df['SFDC_SP_IND'] = self.df.apply(sp_or_null,1) 
+        self.df['SFDC_OPPORTUNITY_IND'] = self.df.apply(opp_locked,1) 
+        self.df['SFDC_SP_IND'] = self.df.apply(sp_ind,1) 
         self.df['SFDC_MODULE_IND'] = self.df.apply(am_or_cage,1)
         self.df['ONE_PRODUCT_IND'] = self.df.apply(having_one_product_only,1)
         self.df['ANY_EXCL_IND'] = self.df[flag_items_EXCL_IND].sum(axis=1)
@@ -55,9 +63,6 @@ class Score:
         tbl_color = sco_table[sco_table['feature'] == 'FINAL_SCORE']
         self.df['COLOR_SCORE'] = self.df.apply(assign_score_to_item, axis=1,
             score_item = 'FINAL_SCORE', score_table=tbl_color, score_var='color')
-
-    def filter(self):
-        self.df = self.df[self.df.FAMILY_SPEND_EST_FOR_EVAL > 500]
 
     def keep_vars(self, varlist):
         self.df = self.df[varlist]
@@ -83,7 +88,7 @@ class Score:
                 'excluded' : df_excl,
                 'no_sfdc' : df_no_sfdc}
 
-    def output_to_file(self, filepath):
+    def output_to_file(self, filepath, filepath_pkl):
         for region_key, region in self.region_dict.items():
             sheet_dict = {}
             filename = os.path.join(filepath, region_key + '.xlsx')
@@ -97,15 +102,20 @@ class Score:
                 sheet_df.to_excel(writer, sheet_name = sheet_name, index =False)
             writer.save()
 
-        self.df.to_pickle(os.path.join(filepath, 'score.pkl'))
+        self.df.to_pickle(os.path.join(filepath_pkl, 'score.pkl'))
 
 
-def opp_locked_or_null(row):
-    return ( str(row['OPPORTUNITY_EXCL_IND']).find('Locked -') >= 0 or 
-             pd.isna(row['OPPORTUNITY_EXCL_IND']) )  
+# def opp_locked_or_null(row):
+#     return ( str(row['OPPORTUNITY_EXCL_IND']).find('Locked -') >= 0 or 
+#              pd.isna(row['OPPORTUNITY_EXCL_IND']) )  
 
-def sp_or_null(row):
-    return str(row['SP_IND']).find('Y') >= 0 or pd.isna(row['SP_IND'])  
+# def sp_or_null(row):
+#     return str(row['SP_IND']).find('Y') >= 0 or pd.isna(row['SP_IND'])  
+def opp_locked(row):
+    return str(row['OPPORTUNITY_EXCL_IND']).find('Locked -') >= 0 
+
+def sp_ind(row):
+    return str(row['SP_IND']).find('Y') >= 0  
 
 def am_or_cage(row):
     return not pd.isna(row['AM_MODULE__C']) or not pd.isna(row['CAGE_NUMBER__C']) 

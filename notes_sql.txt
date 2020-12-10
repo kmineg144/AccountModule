@@ -19,6 +19,7 @@ rptcb.rpt.biller_sfdc_accounts_summary_dyao_11_2020
 to-do
 - combine billing data and sfdc data 
 - combine athena data info to sfdc + biller data
+- may not need many columns from this file, xref may add more data
 
 data requirements
 - rptcb.rpt.sfdc_to_biller_dyao_11_2020
@@ -160,8 +161,8 @@ rptcb.rpt.sfdc_to_biller_dyao_11_2020
 #  -------- biller_athena.sql --------
 to-do
 - extract relevant billing data from single view and csg 
-- 
-- combined all into billing data with family_id 
+- combined them into billing data with family_id 
+- make certain corrections on family_id
 
 data requirements
 - externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
@@ -219,6 +220,7 @@ RptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_dyao_11_2020
 - updated on SVM_HQ_ID using SVM_BUSN_HQ_ID
 
 UPDATESVMBUSNID	
+- used for getting ath_busn_id and HQ_ID and feeing them into SVM/SVAN and HQ_ID 
 - selected from rptCB.Rpt.SCA_MODULE_STAGE1sv_biller_mrc_loc_dyao
 - left joins with
 	- BI_MIP.[MIP3].[SV_SOURCE_ADDR]

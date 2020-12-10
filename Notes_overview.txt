@@ -16,7 +16,7 @@ billing address - main key
 if it is outside the region, use a majority rule 
 
 
-under $500 spending, no account manager
+under $500 spending, no account manager is needed 
 
 
 SQL couldn't handle OR statements -- no index 
@@ -29,11 +29,11 @@ Teradata - watch out for multiple value updates
 
 family_id 
 - originally generated in SAS (table -> table with family_id and merge)
-- need to keep the old ids
-- 
+- may need to keep the old ids
+ 
 
 
-SQL code inherited from Leon 
+SQL code mostly inherited from Leon 
 python code from David
 
 2019 Leon started it
@@ -46,6 +46,8 @@ single view, csg data -- relatively easy
 athena data -- tricky 
 - business id, hq_id  -- supplemental business identification 
 - other info about businesses 
+- info from other companies enter 
+- Comcast doesn't own the data source and someone outside can change it
 
 salesforce -- tricky
 - data input duplicates exist 
@@ -57,15 +59,16 @@ salesforce -- tricky
 
 
 externaluser.[SingleView].[GLDetail_Data_Monthly_Enhanced]
-- only active accounts
+- contain only active accounts
 
 [ExternalUser].[NDW].[BC_SUBS_JV]
 - main cgs 
 
-take care of intersection between SV and CSG 
+take care of intersection between SV and CSG  -- look at FILE_GROUP
 - get SV-only customers  
 - get SV-CSG customers AAN
-- CSG-only customers -- rare, ignore them
+- CSG-only customers -- rare by the end of all filtering 
+
 
 salesforce data
 - account number may be in any of various columns 
@@ -81,11 +84,183 @@ CSG
 - often more simple products 
 
 
+SVM - root account number in SV
+SVAN - account number in SV
+
+Vantage data
+- gives MRC of Connection Pro and WiFi Pro type products 
+
+----------------------------------------------------------------
+
+
+line 102 400k rows after filtering line 360k rows ?  -- should be smaller 
+
+line 426 CSG-only customers -- relatively rare but include them? 
+
+line 429 why set FAMILY_ID to 111..111? 
+
+
+line 621 what does this mean?  CSG4 in ('8155','8777','8497','8498','8772','8778','8495','8512')
+first 4 location -  west?
+
+line 716 where does MOD_BUSN_ID come from?
+alias 
+
+line 844 where did you generate a table you gave to Ram? 
+- see email  RPTCB.RPT.SCA_MODULE_FAMILY_ID_SAS_DYAO_11_2020
+
+line 847 what happens to FAMILY_ID != 0 ?  
+probably not needed 
+
+line 853 what does 'CSG^SV' mean? what is this trying to do? 
+- not sure ask Leon
+
+
+line 882 MAXHQIDFORFAMILY what is this used for?  replacing region to null? 
+- check later, why replacing substring with blank just for a subset 
+
+line 904 CSG_FAMILY_ID_REGIONFIX similar? 
+- something to do with adjusting region 
+line 926 CKFAMHQREGION? 
+ 
+- CSG region exists, SV get it from elsewhere
+
+line 948  are CSG_BUSN_NAME and SV_ROOT_ACCOUNT_NAME reliable to identify distinct businesses without poooling some that happen to have the same names?
+- CSG_BUSN_NAME -string but unique and SV_ROOT_ACCOUNT_NAME -string but unique
+- when do we want the same family_id for multiple locations within a company? trust billing info.
+- 
+
+line 52 which accounts are pulled and inserted?
+
+
+sfdc
+use SobjectType to filter out junk rows
+several columns to hold account numbers csg  CSG_Account_Number__c, sv Parent_BAN__c
+account data -first, 
+order data - linked with billing?, automatic which may capture accounts that may be missing in account data, 
+location_lookup - another data
+
+
+SQL server has a timeout limit
+- watch out for gather_all_sfdc_info 
+
+
+- it takes time to modify and run 
+- no loop
+- select all data you need and do all ETL in python
+- ask Aaron 
+- salesforce data, bc_sub -- in Teradata
+- sv   
+
+
+
+family_id 
+- temporary id 
+- used to determine overlap 
+- logic is up to the person in charge: Leon -> David -> Kota/Aaron
+
+- create new logic for family id
+- salesforce parent_id, any hireachical correlation from salesforce
+- billing system (SV, CSG): same name = same account
+- SV multi-tier 
+- CSG listed within SV
+- athena all sorts of data + legal association, athna_business_id, HQ_ID
+
+- use existing account_onwer:  
+    - AM_Module__c not null  
+    - CAGE_Number__c (teritory) not null 
+    - OwnerID not null
+
+- Brad Lopez - created AM_Module__c and CAGE_Number__c created for this project
+
+- Ask Devon (primary stakeholder) what the excat objective is and what they need. how best to achieve this. 
 
 
 
 
 
+
+
+
+- confirm the deliverable 
+Final outputs in excel
+Tabs (based on region, sfdc matching, exclusion indicators)
+- assigned: 
+- excluded: 
+- no_sfdc: 
+
+
+- ACCT_MODULE_VERSION 
+    - supposed to exist in RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO_11_2020
+    - where did it come from? 
+
+- ESTIMATED_FAMILY_MODULE
+    - EAM, AM1, CENTER, UNDEFINED, EXCLD
+
+- FAMILY_ID_REGION
+
+- BILLING_ZIP_MAX
+    - max(SV_ACCT_ZIP)
+
+- ESTIMATED_FAMILY_SPEND_RANGE
+    - discrete bins of FAMILY_SPEND_EST_FOR_EVAL
+
+
+- FAMILY_SPEND_EST_FOR_EVAL = max(ATHENA_FAMILY_TELCO_SPEND, CSG_AND_SV_TOTAL_MRC)
+- ATHENA_FAMILY_TELCO_SPEND 
+    SUM( when sv_excl_ind, csg_excl_ind, sfdc_nat_ind, sfdc_nat_sp_ind like '%y%' then 0 else ATHENA_SITE_TELCO_MOM1 )
+    - ATHENA_SITE_TELCO_MOM1 = ATHENA_SITE_TELCO_MOMnew =  ATH_MONTHLY_TELCO_SPEND
+
+- CSG_AND_SV_TOTAL_MRC
+     SUM( when sv_excl_ind, csg_excl_ind, sfdc_nat_ind, sfdc_nat_sp_ind like '%y%' 
+            then 0 else SITE_TOTAL_MRC)
+     - SITE_TOTAL_MRC = SV_MRC_TOTAL + CSG_TOTAL_MRC_BCS_WD
+     - SV_MRC_TOTAL = Amount in [SingleView].[GLDetail_Data_Monthly_Enhanced
+     - CSG_TOTAL_MRC_BCS_WD =  
+         CSG_WIFIPRO_MRC_WD + CSG_CONNPRO_MRC_WD + 
+         CSG_SECEDGE_MRC_WD + CSG_TOTAL_MRC_BCS
+     - CSG_TOTAL_MRC_BCS = TOTAL_MRC_AMT from [NDW].[BC_SUBS_JV]
+     - WifiPro, connPro, securityEdge from .[Vantage].[OCI_CUR_ITEM]
+- TOTAL_LOC_CNT = count(distinct DISTINCT_LOC_ID) 
+        from biller_sfdc_accounts_dyao_11_2020
+- CSG_TENURE_MNTHS = max(CSG_TENURE_MNTHS) 
+        from biller_sfdc_accounts_dyao_11_2020  
+    - cgs data only: from [NDW].[BC_SUBS_JV] 
+- ONE_PRODUCT_IND: data vs voice - one product only indicator using 
+    data: ['SV_METROE_IND', 'CSG_DATA_IND', 'CSG_WIFIPRO_IND',  'CSG_CONNPRO_IND', 'CSG_TW_IND']
+    voice: ['CSG_VOICE_IND', 'SV_AV_IND'] 
+
+- SV_EXCL_IND
+    - not null  in 
+      COALESCE(NAT_IND, GOV_IND, EDU_IND, AGGR_IND, MES_IND, CAR_IND, CBH_IND, TWKR_IND)
+    - derived from str var SV_LINE_OF_BUSINESS 
+- CSG_EXCL_IND
+    - CSG_DWELL_DESCR_BCS2 = 'RESIDENTIAL', TEST_FOR_IND LIKE '%RESI_%', TEST_FOR_IND LIKE '%RESIDENTIAL%'
+
+sfdc_nat_ind
+    - SFDC_OWNER_USERNAME or SFDC_OBJECT_TYPE = 'national_otm@cable.comcast.com.smb' 
+sfdc_nat_sp_ind
+    - SFDC_ACCOUNT_TYPE = 'National Indirect sales'
+
+PARENTID
+    - salesforce parentid from .sfdc.Account 
+
+- SFDC_OPPORTUNITY_IND
+    - bool: opp_locked_or_null
+- SFDC_SP_IND
+    - bool: sp_or_null
+- SFDC_MODULE_IND
+    - bool: am_or_cage
+
+- feature scoring table review
+- ANY_EXCL_IND
+
+- SFDC_ACCOUNT_URL
+    - this helps link to update info in salesforce data
+    - loaded/not loaded of previous outputs - how does this matter? 
+
+
+- Anything else requested? 
 
 
 

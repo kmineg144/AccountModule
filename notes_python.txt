@@ -1,0 +1,24 @@
+
+
+3 datasets coming from SQL Server
+- opportunity (id Opportunity_Number__c)
+- account (id ACCOUNT__C)
+- summary (id FAMILY_ID)
+
+
+opp data processing
+- create exclusion indues for opportunities that are locked or having owners. 
+
+account data processing
+- merged with processed opp data
+- sort and select one account per family_id  
+
+summary data processing
+- merged with processed account data
+- assign scores and export data in excel for each region
+
+
+
+  
+
+

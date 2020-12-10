@@ -535,3 +535,70 @@ where
  from 
 	rptcb.rpt.accounts_11_2020) 
 --and AccountId = '0011H00001vxiltQAA'
+	
+
+	
+-- export data
+	
+select *
+from rptcb.rpt.accounts_11_2020
+
+select *
+from rptcb.rpt.biller_sfdc_accounts_dyao_11_2020  
+
+
+--select *
+--from rptcb.rpt.biller_sfdc_accounts_summary_dyao_11_2020
+
+
+-- inspect data
+
+-- before summary
+select  DISTINCT_LOC_ID, PARENT_ID, CSG_BUSN_NAME, SV_ROOT_ACCOUNT_NAME, FILE_GROUP,
+       ATHENA_SITE_TELCO_MOM1, CSG_TOTAL_MRC_BCS_WD, SV_ACCT_CITY
+from   rptcb.rpt.biller_sfdc_accounts_dyao_11_2020  
+where FAMILY_ID=2596;
+
+
+-- after summary
+select FILE_GROUP, SV_ROOT_ACCOUNT, CSG_ACCOUNT, SV_BUSN_NAME_MAX, CSG_BUSN_NAME_MAX,
+	FAMILY_SPEND_EST_FOR_EVAL, ATHENA_FAMILY_TELCO_SPEND, CSG_AND_SV_TOTAL_MRC, TOTAL_LOC_CNT
+from  rptcb.rpt.biller_sfdc_accounts_summary_dyao_11_2020
+where FAMILY_ID=2596;
+
+
+
+
+-- create a copy 
+select * 
+into #stage1x_copy
+from  RptCB.Rpt.SCA_MODULE_STAGE1X_DYAO_11_2020 
+
+
+update #stage1x_copy
+set FAMILY_ID = _FinalFamilyID_
+from RPTCB.RPT.FAMILY_ID_YAO AS F 
+where  [DISTINCT_LOC_ID] = F._DISTINCT_LOC_ID_ 
+
+
+select DISTINCT_LOC_ID, SV_ACCT_ADDR1, SV_ROOT_ACCOUNT_NAME, SV_MRC_TOTAL, 
+	CSG_BUSN_NAME, CSG_TOTAL_MRC_BCS_WD
+from #stage1x_copy
+where FAMILY_ID=2596;
+
+
+select top 10 *
+from RPTCB.RPT.FAMILY_ID_YAO;
+
+
+select *
+from RPTCB.RPT.FAMILY_ID_YAO
+where _FinalFamilyID_ = '2596.0';
+
+
+
+
+
+
+
+

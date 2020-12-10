@@ -1,9 +1,11 @@
+import os
 import pandas as pd
 import numpy as np
 
 class Account:
-    def __init__(self, csv_file):
+    def __init__(self, csv_file, varname_family_id='family_id'):
         self.df = pd.read_csv(csv_file)
+        self.family_id = varname_family_id
 
     def merge_data(self, df_opp):
         self.df = (
@@ -33,7 +35,7 @@ class Account:
                ,'OPPORTUNITY_EXCL_IND'
                ,'SP_IND'
                ,'CreatedDate'], ascending=[True, True, True, False])
-            .drop_duplicates(subset=['family_id'], keep='first')
+            .drop_duplicates(subset=[self.family_id], keep='first')
             )
 
     def drop_vars(self, dropping_vars):
